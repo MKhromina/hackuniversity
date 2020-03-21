@@ -1,0 +1,50 @@
+import OpenOPC
+import time
+opc = OpenOPC.client()
+# узнаем список доступных серверов
+server=opc.servers()
+print (server)
+# выбираем третий из списка
+server=server[2]  
+print ("Connect to Server: " + server)
+# подключемся к серверу
+opc.connect(server)
+# создаем список опрашиваемых регистров для прибора Owen MB110-8A
+tagsValue=[];
+tagsStatus=[];
+for each in range(1,9):
+    tagsValue.append(u'Node1.MB110-8A.Input'+str(each)+'.Value')  # регистры значений
+    tagsStatus.append(u'Node1.MB110-8A.Input'+str(each)+'.Status') # регистры статуса
+# инициализируем группы опроса
+opc.read(tagsValue,group='value',update=1,include_error=True)
+opc.read(tagsStatus,group='status',update=1,include_error=True)
+# в тестовой программе я опрашивал регистры 100 раз
+i=0
+while i<100:
+    #    считываем значения
+    data=opc.read(group='value',update=1, include_error=True)
+    statusList=opc.read(group='status',update=1, include_error=True)
+    # парсим данные, форматируем и выводим в консоль
+    j=0
+    temp=list()
+    messages=list()
+    while j<(len(data)-0):
+        adress,value,answ,clock,Message=data[j]
+        adress,status,answ,clock,Message=statusList[j]
+        #print status
+        if (status==0):
+            temp.append(value)
+        else:
+            temp.append(0);
+        messages.append(Message)
+        j+=1
+    j=0
+    text=''+clock+"-> "
+    while j<len(temp):
+       text+= ("{t}").format(t="%6.1f"%(temp[j]))#+messages[j]+"\n"
+       j+=1
+    print (text)
+    i+=1
+    time.sleep(3)
+# отключаемся    
+opc.close()
